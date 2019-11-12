@@ -1,12 +1,9 @@
 #include "matrix.hpp"
 
 #include <cuda.h>
-#include <mma.h>
 #include <iostream>
 
-using namespace nvcuda;
-
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 32
 #define BLOCK_SIZE_SORT 128
 
 struct DMatrix
@@ -93,7 +90,7 @@ void distance_matrix_shared(DMatrix A, DMatrix Q, DMatrix M)
 	// Thread row and column within Msub
 	int row = threadIdx.y;
 	int col = threadIdx.x;
-	wmma::fragment<wmma::matrix_a, 16, 16, 16, float, wmma::col_major> a_frag;
+	
 	const int global_row = blockRow * BLOCK_SIZE + row;
 	const int global_col = blockCol * BLOCK_SIZE + col;
 	const bool outside_scope_M = global_row >= M.num_rows || global_col >= M.num_cols;
@@ -124,12 +121,10 @@ void distance_matrix_shared(DMatrix A, DMatrix Q, DMatrix M)
         // before starting the computation
         __syncthreads();
 
-
-
-        // Multiply Asub and Qsub together
+	// Multiply Asub and Qsub together
         for (int e = 0; e < BLOCK_SIZE; ++e)
         {
-        	float t = (As[row][e] - Qs[e][col]);
+            float t = (As[row][e] - Qs[e][col]);
             D += t*t;
         }
 
